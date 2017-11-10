@@ -5,12 +5,12 @@
 #define ONENET_PORT         (6002)
 
 /* Here needs to be changed accoding to your oneONET configure. */
-#define ONENET_DEVICE_ID    "20260591"                  // mqtt client id
-#define ONENET_PROJECT_ID   "101343"                    // mqtt username
-#define ONENET_AUTH_INFO    "espressif"   // mqtt password
+#define ONENET_DEVICE_ID    "*******"                  // mqtt client id
+#define ONENET_PROJECT_ID   "*******"                    // mqtt username
+#define ONENET_AUTH_INFO    "*******"   // mqtt password
 
 /* Here needs to be changed accoding to your oneONET configure. */
-#define ONENET_DATA_STREAM  "temperature"
+#define ONENET_DATA_STREAM  "*******"
 
 #define ONENET_PUB_INTERVAL (60) // unit: s
 

@@ -33,16 +33,19 @@ ESP32 是乐鑫信息科技设计的集成 2.4 GHz Wi-Fi 和蓝牙双模的单�
 - 产品注册  
 登录 OneNET 官网，进行设备注册。点击“开发者中心”，进入相应的“产品列表”管理页面，在这里您可以新建并管理您的产品；  
 点击右上角的 “创建产品”，在弹出页面中按照提示填写产品的基本信息，进行产品创建；  
+
 ![](https://i.imgur.com/B7u07Ks.png)
 
 操作系统选择“其他 -> freertos”，网络运营商选择“其他”，联网方式选择“Wi-Fi”.
 
   在创建过程最后一步，系统会提示让您选择“设备接入方   式”和“设备接入协议”， 协议选择“公开协议 -> MQTT”，点击“确定”按钮，完成产品创建。   
+  
 ![](https://i.imgur.com/FxMLIj1.png) 
 
 - 创建设备  
 
  在设备管理页面选择“添加设备”， 输入设备名称和鉴权信息，鉴权信息可以自己定义，相当于通讯双方都知道的“暗号”。  
+ 
 ![](https://i.imgur.com/zuGlXgn.png)
 
  接入设备后可以获得设备的 ID 等设备信息。
@@ -50,9 +53,11 @@ ESP32 是乐鑫信息科技设计的集成 2.4 GHz Wi-Fi 和蓝牙双模的单�
 - 创建应用   
 
  设备的应用可以更好的对设备上传的数据进行统计和展示，点击创建应用，选择独立应用，选择产品及名称，点击创建。  
+ 
 ![](https://i.imgur.com/XIGPsDs.png)
 
 因为我们需要展示人流量的变化数据，因此在这里选择“折线图”，然后对坐标轴进行设置，得到一个大体的应用框架，在这时还不能对数据流进行选择，因为我们还没有开始进行数据上报，点击保存，则可以在“应用管理中看到刚刚创建的应用”。  
+
 ![](https://i.imgur.com/iHAKOzi.png)
 
 ### 2.3 程序中设备信息填充  
@@ -101,17 +106,20 @@ ESP32 是乐鑫信息科技设计的集成 2.4 GHz Wi-Fi 和蓝牙双模的单�
 ## 3. OneNET 控制台查看人流量数据  
 
 打开 OneNET 控制台，可以看到设备已经在线，点击设备对应的应用，选择数据流“Pedestrian-flow”，则可以看到应用中数据流的变化曲线图。  
+
 ![](https://i.imgur.com/6qoYiRh.png)
 
 ## 4. ESP32 抓包详解  
 
 ### 4.1 Probe Request 包分析  
 
-Probe Request 包属于 802.11 标准，其基本的帧结构如下： 
+Probe Request 包属于 802.11 标准，其基本的帧结构如下：   
+
 ![](https://i.imgur.com/q4D4Wn9.jpg) 
 
 通过 wireshark 抓包获得 Probe Request 包如下：  
 *注： ubuntu 下 wireshark 抓 802.11教程可参考http://ju.outofmemory.cn/entry/204965*
+
 ![](https://i.imgur.com/7Lsdu3L.png)
 
 可以从包中看到该帧的 “Subtype : 4”, 还有信号强度和 MAC 地址等信息。
@@ -123,16 +131,20 @@ Probe Request 包属于 802.11 标准，其基本的帧结构如下：
         if (sniffer_payload->header[0] != 0x40) {
             return;
         }
-- 得到真正的 Probe Request 包后，首先对来源设备的 MAC 地址进行分析，过滤掉一些不需要计算的设备（固定无线装置等）。  
+        
+- 得到真正的 Probe Request 包后，首先对来源设备的 MAC 地址进行分析，过滤掉一些不需要计算的设备（固定无线装置等）。 
+-  
         for (int i = 0; i < 32; ++i) {
             if (!memcmp(sniffer_payload->source_mac, esp_module_mac[i], 3)) {
                 return;
             }
         }
+        
   在程序中我们过滤掉其他 ESP32 芯片的 MAC 地址。  
   
 - 重复设备过滤  
 在抓到的包中，有相当一部分是来自于同一设备的 Probe Request 包，因此需要剔除。  
+
         for (station_info = g_station_list->next; station_info; station_info = station_info->next) {
             if (!memcmp(station_info->bssid, sniffer_payload->source_mac, sizeof(station_info->bssid))) {
                 return;
@@ -140,6 +152,7 @@ Probe Request 包属于 802.11 标准，其基本的帧结构如下：
         }  
         
 - 我们创建一个存储每一个设备信息的链表，在获得一个有效设备信息后，将该设备信息加入设备链表中。  
+- 
         if (!station_info) {
             station_info = malloc(sizeof(station_info_t));
             station_info->next = g_station_list->next;
@@ -149,6 +162,8 @@ Probe Request 包属于 802.11 标准，其基本的帧结构如下：
 ## 5. 人流量计算  
 
 首先需要确定计算人流量的区域范围，我们利用获得的设备信号强度进行划分，从而根据选择不同的信号强度来确定需要监控人流量的区域范围。  
+
+但是 RSSI 并不是协议中的字段，802.11协议中没有给出具体产生RSSI的过程或者说是算法吧。协议中说RSSI值范围0~255，RSSI值随PHY Preamble部分的能量单调递增。即在接收端网卡测量到RSSI的值以后，我们可以从这个程序接口获得RSSI的值。因此在不同的实地环境下，要根据实际测定来确定不同接受距离对应的实际 RSSI 值。
 
 由于无线设备的普及，几乎人手都会持有一具有特定 MAC 地址的无线设备，而无线设备又会发送 Probe Request 包，因此只要得到空中的 Probe Request 包就可以计算出该区域的流动人数。   
 
