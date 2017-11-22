@@ -1,6 +1,7 @@
 ## ESP32基于MQTT协议对接OneNET平台完成人流量检测及数据云端统计
  本文部分参考: [by WWW]
-http://espressif.com/zh-hans/products/hardware/esp8266ex/overview
+http://espressif.com/zh-hans/products/hardware/esp8266ex/overview  
+
 https://open.iot.10086.cn
 
 ## 前言
@@ -18,20 +19,30 @@ MQTT（Message Queuing Telemetry Transport，消息队列遥测传输）是IBM�
 在得到基本的人流量数据后，ESP32 通过 MQTT 协议将数据发送至 OneNET 物联网平台，在OneNET平台上，得到最终的人流量变化曲线图，同时我们也可以在云端方便的进行数据处理和监控。
 
 ##  二: ESP32 及开发环境搭建
-**如果您熟悉ESP32开发环境，可以很顺利理解下面步骤; 如果您不熟悉某个部分，比如编译，烧录等，需要您结合官方的相关文档来理解。http://espressif.com/zh-hans/support/download/overview，如您需阅读[ESP32 快速入门指南](http://esp-idf.readthedocs.io/en/latest/get-started/index.html)文档。**
+**如果您熟悉ESP32开发环境，可以很顺利理解下面步骤; 如果您不熟悉某个部分，比如编译，烧录等，需要您结合官方的[相关文档](http://espressif.com/zh-hans/support/download/overview)来理解。**
+
+**如您需阅读[ESP32 快速入门指南](http://esp-idf.readthedocs.io/en/latest/get-started/index.html)文档。**
 
 ### 2.1 ESP32 硬件准备
 
 a) 没错，你需要一颗 ESP32 系列产品，[ESP32-DevKitC 开发板](http://esp-idf.readthedocs.io/en/latest/hw-reference/modules-and-boards.html#esp32-core-board-v2-esp32-devkitc) 或 [ESP-WROVER-KIT 开发板](http://esp-idf.readthedocs.io/en/latest/hw-reference/modules-and-boards.html#esp-wrover-kit) 都是OK的。 如:
  ![ESP32](http://img.blog.csdn.net/20171120210803208?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvZXNwcmVzc2lm/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+
 b) 路由器/ AP[可以连接外网]
+
 c) PC[推荐ubuntu], 如果不是Linux，可能需要您参考上面快速入门指南搭建虚拟机和编译器环境
+
 d) 串口线
 
+
 ### 2.2 OneNet 平台准备
+
 #### 2.2.1 [OneNet](https://open.iot.10086.cn/) 账号注册
+
 - 注意联通手机号可能获取不到动态验证码，可能是该平台暂不支持
+
 #### 2.2.2 登录账号，创建产品
+
 在登录后的页面，右上角的**开发者中心**,创建自己的物联网产品。
 
 ![](https://i.imgur.com/B7u07Ks.png)
@@ -54,7 +65,9 @@ d) 串口线
 ![productID](http://img.blog.csdn.net/20171122110557487?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvZXNwcmVzc2lm/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
 
 #### 2.2.3 产品下面创建设备
+
 点击产品进入，点击添加设备
+
 ![device](http://img.blog.csdn.net/20171122110825210?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvZXNwcmVzc2lm/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
 
 注意**鉴权信息**会在后面的程序交互中用到。
@@ -64,12 +77,14 @@ d) 串口线
 ![deviceID](http://img.blog.csdn.net/20171122111158679?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvZXNwcmVzc2lm/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
 
 #### 2.2.4 为设备创建应用
+
 设备的应用可以更好的对设备上传的数据进行统计和展示，点击创建应用，选择独立应用，选择产品及名称，点击创建。  
 
 ![这里写图片描述](http://img.blog.csdn.net/20171122111500599?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvZXNwcmVzc2lm/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
 
 #### 2.2.5 进入创建的应用
 因为我们需要展示人流量的变化数据，因此在这里选择“折线图”，然后对坐标轴进行设置，得到一个大体的应用框架。
+
 数据流中，目前只能选择到设备，在这时还不能对数据流进行选择，因为我们还没有开始进行数据上报，等到设备端连上OneNet并上报数据后，这里我们就可以选择数据流啦。
 
 ![这里写图片描述](http://img.blog.csdn.net/20171122111917352?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvZXNwcmVzc2lm/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
@@ -77,8 +92,10 @@ d) 串口线
 至此，平台端工作完毕。
 
 ### 2.3 设备端环境搭建
+
 #### 2.3.1 ESP-IDF SDK 获取
 此 SDK 可以保证 ESP32 正常启动，良好工作。
+
 ```
 $ git clone https://github.com/espressif/esp-idf.git
 $ cd esp-idf
@@ -86,16 +103,21 @@ $ git submodule update --init
 ```
 
 #### 2.3.2 ESP-IDF 编译器获取
+
 根据官方的说明，不同的平台下载对应的编译器。
+
 编译器下载: [https://esp-idf.readthedocs.io/en/latest/get-started/index.html](https://esp-idf.readthedocs.io/en/latest/get-started/index.html)
 
 #### 2.3.3 ESP-IDF 和 OneNet 对接 demo 获取
+
 ```
 $ git clone https://github.com/WeldonWangwang/ESP32_Check_Pedestrian-flow.git
 $ cd ESP32_Check_Pedestrian-flow
 $ git submodule update --init
 ```
+
 or 
+
 ```
 $ git clone https://github.com/ustccw/OneNETESP32.git
 $ cd OneNETESP32
@@ -105,18 +127,23 @@ $ git submodule update --init
 #### 2.3.4 Demo 参数修改
 
  在程序中的 `main/include/onenet.h` 中将刚刚在平台上创建得到的“**设备 ID**”，“**产品 ID**”，“**鉴权信息**” 进行填充：  
+
 ```
         #define ONENET_DEVICE_ID    "*****"         // mqtt client id
         #define ONENET_PROJECT_ID   "*****"         // mqtt username
         #define ONENET_AUTH_INFO    "*****"         // mqtt password
 ```
+
 自定义数据流名称: // 此名称将会出现在 2.2.5 节中 选择数据流的字段中
+
 ```
 #define ONENET_DATA_STREAM  "******"
 ```
 
 #### 2.3.5 导出 ESP-IDF 和 编译器路径
+
 根据自己的目录结构导出 esp-idf 和 xtensa 编译器，这样才能编译整个 demo, 如:
+
 ```
 $ cd ESP32_Check_Pedestrian-flow
 $ export IDF_PATH=~/esp/esp-idf
@@ -124,20 +151,24 @@ $ export PATH=/opt/xtensa-esp32-elf/bin/:$PATH
 ```
 
 #### 2.3.6 make menuconfig 配置
+
 - Serial flasher config - Default serial port // 配置烧写串口
 -  Demo Configuration - WiFi SSID // 配置连接 路由器/AP 的SSID
 - Demo Configuration - WiFi Password // 配置 路由器AP 的密码
 
 #### 2.3.7 编译 && 运行
+
 编译成功后，会自动烧写程序，同时自动运行程序。
+
 ```
 $ make flash monitor
-
 
 ```
 
 ##  三: 结果展示
+
 #### 3.1 设备端成功log如下:
+
 ```
 ... // 一些启动信息
 
@@ -204,7 +235,9 @@ MAC: 0x3E.0x97.0x88.0x49.0x37.0xD7, The time is: 36010, The rssi = -63
 ```
 
 #### 3.2 OneNet 平台结果展示
+
 参考 2.2.5 节，打开 OneNET 控制台，可以看到设备已经在线，点击设备对应的应用，选择数据流“Pedestrian-flow”，则可以看到应用中数据流的变化曲线图，如下:
+
 **注意: 程序默认是十分钟上报一次数据，OneNet 平台要想看到曲线，需等待10分钟+**
 
 ![test](https://i.imgur.com/6qoYiRh.png)
@@ -239,7 +272,8 @@ if (sniffer_payload->header[0] != 0x40) {
 
 b) MAC地址选择过滤
 
-得到真正的 Probe Request 包后，首先对来源设备的 MAC 地址进行分析，过滤掉一些不需要计算的设备（固定无线装置等），  在程序中我们过滤掉其他 ESP32 芯片的 MAC 地址。  
+得到真正的 Probe Request 包后，首先对来源设备的 MAC 地址进行分析，过滤掉一些不需要计算的设备(固定无线装置等),在程序中我们过滤掉其他 ESP32 芯片的 MAC 地址。  
+
 
 ```
 for (int i = 0; i < 32; ++i) {
@@ -252,6 +286,7 @@ for (int i = 0; i < 32; ++i) {
 c) 重复设备过滤  
 
 在抓到的包中，有相当一部分是来自于同一设备的 Probe Request 包，因此需要剔除。  
+
 ```
 for (station_info = g_station_list->next; station_info; station_info = station_info->next) {
     if (!memcmp(station_info->bssid, sniffer_payload->source_mac, sizeof(station_info->bssid))) {
@@ -263,6 +298,7 @@ for (station_info = g_station_list->next; station_info; station_info = station_i
 d) 链表说明
 
 我们创建一个存储每一个设备信息的链表，在获得一个有效设备信息后，将该设备信息加入设备链表中。  
+
 ```
 if (!station_info) {
    station_info = malloc(sizeof(station_info_t));
@@ -274,6 +310,7 @@ if (!station_info) {
 e) MQTT 说明
 
 ESP32 可以很好的移植并很好的支持 MQTT 协议，设备端通过 pubish 即可将数据发送到云端。  
+
 ```
 val =  s_device_info_num / 10;
 char buf[128];
@@ -296,11 +333,12 @@ mqtt_publish(client, "$dp", buf, len + 3, 0, 0);
 
 人流量是指在一定区域内单位时间的人流总数，因此我们以 10 分钟为侦测区间，通过对在 10 分钟内的所有人数进行计算来获得人流量。
 在 10 分钟后将链表清空，开始下一阶段的监控。整个统计流程如下：  
+
 ![](https://i.imgur.com/aJdu10E.png)  
  
 
 ## 五. 总结
 
-通过 ESP32 进行抓包，可以在保证抓包质量的同时，也可以承担很多其他的功能角色，来最大程度的利用 ESP32。如 ESP32 可以通过 MQTT 协议进行订阅相关 topic， 进而通过云端来控制 ESP32.。
+通过 ESP32 进行抓包，可以在保证抓包质量的同时，也可以承担很多其他的功能角色，来最大程度的利用 ESP32。如 ESP32 可以通过 MQTT 协议进行订阅相关 topic， 进而通过云端来控制 ESP32。
 
 改进: 不同区域内的人流量大小会影响到 ESP32 接收到的信号强度发生变化，因此当使用信号强度来判定选择区域范围时会存在误差，此点需要改进。
